@@ -3,28 +3,12 @@
 
 -export([init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2, code_change/3]).
 
--export([start_crawler/2, visit_url/4, site_tree/1]).
+-export([start/2, visit_url/4]).
 
-init([Domain, StorePID, DownloaderPID]) -> {ok, [Domain, StorePID, DownloaderPID]}.
-terminate(_Reason, _State) -> {ok}.
+init([Domain, StorePID, DownloaderPID]) -> 
+	{ok, [Domain, StorePID, DownloaderPID]}.
 
-handle_call({site_tree}, _From, [Domain, StorePID, DownloaderPID]) -> 
-	{reply, crawler_store:get_visited(StorePID), [Domain, StorePID, DownloaderPID]}.
-
-handle_cast({run, URL}, [Domain, StorePID, DownloaderPID]) -> 
-	visit_url(Domain, URL, StorePID, DownloaderPID),
-	{noreply, [Domain, StorePID, DownloaderPID]};
-handle_cast(_Request, State) -> {noreply, State}.
-
-handle_info(_Info, State) -> {noreply, State}.
-
-code_change(_OldCode, State, _Extra) -> {ok, State}.
-
-
-site_tree(CrawlerPID) ->
-	gen_server:call(CrawlerPID, {site_tree}).
-
-start_crawler(URL, MaxHrefs) ->
+start(URL, MaxHrefs) ->
 	inets:start(),
 	ssl:start(),
     case http_uri:parse(URL) of
@@ -130,4 +114,16 @@ absolute_url(Scheme, Domain, Path, Href) ->
 			atom_to_list(Scheme) ++ "://" ++ Domain ++ DirPath ++ "/" ++ Href
 	end.
 
-    
+    terminate(_Reason, _State) -> {ok}.
+
+handle_call(_Request, _From, State) -> 
+	{reply, {ok}, State}.
+
+handle_cast({run, URL}, [Domain, StorePID, DownloaderPID]) -> 
+	visit_url(Domain, URL, StorePID, DownloaderPID),
+	{noreply, [Domain, StorePID, DownloaderPID]};
+handle_cast(_Request, State) -> {noreply, State}.
+
+handle_info(_Info, State) -> {noreply, State}.
+
+code_change(_OldCode, State, _Extra) -> {ok, State}.
